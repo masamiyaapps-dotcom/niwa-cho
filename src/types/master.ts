@@ -1,4 +1,4 @@
-import type { HeightClass, ObstacleCode, TreeWorkType } from './estimate';
+import type { HeightClass, ObstacleCode, TreeWorkType, GroundWorkType } from './estimate';
 
 // ─── 丸めルール ───
 export type RoundingRule = 'NONE' | 'ROUND_10' | 'ROUND_100';
@@ -18,7 +18,7 @@ export interface TreePrice {
 
 // ─── 除草単価 ───
 export interface GroundPrice {
-  workType: 'WEED_HAND' | 'WEED_MACHINE';
+  workType: GroundWorkType;
   pricePerUnit: number; // 税抜 / ㎡
 }
 
