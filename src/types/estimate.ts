@@ -1,3 +1,12 @@
+// ─── ステータス ───
+export type EstimateStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLETED';
+
+export const ESTIMATE_STATUS_LABELS: Record<EstimateStatus, string> = {
+  DRAFT: '下書き',
+  SUBMITTED: '提出済',
+  COMPLETED: '完了',
+};
+
 // ─── カテゴリ・作業種別 ───
 export type Category = 'TREE' | 'GROUND' | 'DISPOSAL' | 'CUSTOM';
 
@@ -47,9 +56,15 @@ export interface EstimateItem {
   unit: string;
   unitPriceExclTax: number;
   lineMultiplier: number; // 既定 1.0
+  multiplierQty?: number; // 倍率適用本数（0 or undefined = 全数に適用しない）
   species?: string; // 樹種（任意）
   note?: string;
+  obstacles?: ObstacleCode[]; // 明細ごとの障害物理由
 }
+
+export const ALL_OBSTACLES: ObstacleCode[] = [
+  'ROAD', 'LANTERN_FLOWERBED', 'CAVE', 'NEIGHBOR', 'POND', 'SLOPE', 'CLIFF',
+];
 
 // ─── 作業環境チェック ───
 export type ObstacleCode =
@@ -99,6 +114,7 @@ export interface Totals {
 // ─── 案件 ───
 export interface Estimate {
   id: string;
+  status: EstimateStatus;
   title: string;
   address?: string;
   memo?: string;

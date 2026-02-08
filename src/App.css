@@ -54,6 +54,23 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.header-right-action {
+  flex-shrink: 0;
+}
+
+.header-home-btn {
+  color: white;
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.header-home-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* ─── Sub Navigation (Estimate sections) ─── */
 .sub-nav {
   display: flex;
@@ -335,8 +352,118 @@
 .input-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
   margin-top: var(--space-md);
+}
+
+/* ─── Input Row Group (row + expandable detail) ─── */
+.input-row-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.input-row-group .input-row {
+  border-bottom: none;
+}
+
+/* ─── Multiplier Button ─── */
+.multiplier-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  min-height: 28px;
+  white-space: nowrap;
+}
+
+.multiplier-btn--active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #eef5e8;
+  font-weight: 600;
+}
+
+.multiplier-btn--open {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.multiplier-btn:active {
+  opacity: 0.7;
+}
+
+/* ─── Multiplier Detail (expandable section) ─── */
+.multiplier-detail {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background: #fafaf5;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.multiplier-detail-inputs {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-end;
+}
+
+.multiplier-detail-inputs .multiplier-detail-field {
+  flex: 1;
+}
+
+.multiplier-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.multiplier-detail-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.multiplier-detail-summary {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  background: #eef5e8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* ─── Obstacle Chips ─── */
+.obstacle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.obstacle-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  background: white;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  cursor: pointer;
+  min-height: 30px;
+  transition: all 0.15s;
+}
+
+.obstacle-chip:active {
+  opacity: 0.7;
+}
+
+.obstacle-chip--active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  font-weight: 500;
 }
 
 .input-row {
@@ -606,6 +733,31 @@
   z-index: 50;
 }
 
+/* ─── Master View (read-only) ─── */
+.master-view-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.master-view-label {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.master-view-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mb-lg {
+  margin-bottom: var(--space-lg);
+}
+
+/* ─── Master Edit ─── */
 .master-edit-row {
   display: flex;
   justify-content: space-between;
@@ -729,4 +881,135 @@
 
 .text-danger {
   color: var(--color-danger);
+}
+
+/* ─── Status Badge ─── */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge--draft {
+  background: #e8eaf6;
+  color: #3949ab;
+}
+
+.status-badge--submitted {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge--completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* ─── Status Filter ─── */
+.status-filter {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.status-filter-btn {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.status-filter-btn--active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* ─── Status change buttons ─── */
+.btn-status-submit {
+  border-color: #e65100;
+  color: #e65100;
+}
+
+.btn-status-complete {
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+/* ─── Estimate card title row ─── */
+.estimate-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ─── Completed card ─── */
+.estimate-card--completed {
+  opacity: 0.75;
+}
+
+.estimate-card--completed .estimate-card-link:active {
+  background: inherit;
+}
+
+/* ─── Completed Banner ─── */
+.completed-banner {
+  background: #fff3e0;
+  color: #e65100;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  border-bottom: 1px solid #ffcc02;
+}
+
+/* ─── Locked content ─── */
+.page-content--locked {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.page-content--locked .stepper-btn,
+.page-content--locked .form-input,
+.page-content--locked .checkbox-item {
+  cursor: not-allowed;
+}
+
+.stepper--disabled {
+  opacity: 0.5;
+}
+
+.checkbox-item--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Locked value (read-only display) ─── */
+.locked-value {
+  padding: var(--space-sm) var(--space-md);
+  background: #f5f5f0;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+/* ─── Summary status ─── */
+.summary-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  background: #f9f9f5;
+  border-radius: 8px;
 }

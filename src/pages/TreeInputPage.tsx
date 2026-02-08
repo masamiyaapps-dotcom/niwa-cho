@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/ui/Header';
 import { SubNavigation } from '../components/ui/SubNavigation';
+import { CompletedBanner } from '../components/ui/CompletedBanner';
 import { Stepper } from '../components/ui/Stepper';
+import { MultiplierDetail } from '../components/ui/MultiplierDetail';
 import { formatYen } from '../utils/format';
 import { calcLineAmount } from '../utils/calc';
 import type { Estimate, EstimateItem, HeightClass, TreeWorkType } from '../types/estimate';
@@ -22,6 +24,7 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TreeWorkType>('PRUNE');
   const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id) {
@@ -29,6 +32,32 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       if (est) setEstimate({ ...est });
     }
   }, [id, getEstimate]);
+
+  const isLocked = estimate?.status === 'COMPLETED';
+
+  // ─── 行の展開/折りたたみ ───
+  const toggleExpand = useCallback((key: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // ─── アイテム取得 ───
+  const getItem = useCallback(
+    (workType: TreeWorkType, heightClass: HeightClass): EstimateItem | undefined => {
+      if (!estimate) return undefined;
+      return estimate.items.find(
+        (i) =>
+          i.category === 'TREE' &&
+          i.workType === workType &&
+          i.heightClass === heightClass,
+      );
+    },
+    [estimate],
+  );
 
   const getUnitPrice = useCallback(
     (workType: TreeWorkType, heightClass: HeightClass): number => {
@@ -42,21 +71,15 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
   const getQuantity = useCallback(
     (workType: TreeWorkType, heightClass: HeightClass): number => {
-      if (!estimate) return 0;
-      const item = estimate.items.find(
-        (i) =>
-          i.category === 'TREE' &&
-          i.workType === workType &&
-          i.heightClass === heightClass,
-      );
-      return item?.quantity ?? 0;
+      return getItem(workType, heightClass)?.quantity ?? 0;
     },
-    [estimate],
+    [getItem],
   );
 
+  // ─── 数量変更 ───
   const setQuantity = useCallback(
     (workType: TreeWorkType, heightClass: HeightClass, qty: number) => {
-      if (!estimate) return;
+      if (!estimate || isLocked) return;
 
       const newItems = [...estimate.items];
       const idx = newItems.findIndex(
@@ -67,8 +90,13 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       );
 
       if (qty === 0 && idx >= 0) {
-        // 0なら明細を削除
         newItems.splice(idx, 1);
+        // 数量0なら展開も閉じる
+        setExpandedRows((prev) => {
+          const next = new Set(prev);
+          next.delete(`${workType}_${heightClass}`);
+          return next;
+        });
       } else if (idx >= 0) {
         newItems[idx] = { ...newItems[idx], quantity: qty };
       } else if (qty > 0) {
@@ -90,10 +118,35 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, getUnitPrice, onUpdate],
+    [estimate, isLocked, getUnitPrice, onUpdate],
   );
 
-  // タブの小計計算
+  // ─── 倍率・メモ・障害物の更新 ───
+  const updateItemDetail = useCallback(
+    (
+      workType: TreeWorkType,
+      heightClass: HeightClass,
+      updates: Partial<Pick<EstimateItem, 'lineMultiplier' | 'multiplierQty' | 'note' | 'obstacles'>>,
+    ) => {
+      if (!estimate || isLocked) return;
+      const newItems = estimate.items.map((i) => {
+        if (
+          i.category === 'TREE' &&
+          i.workType === workType &&
+          i.heightClass === heightClass
+        ) {
+          return { ...i, ...updates };
+        }
+        return i;
+      });
+      const updated = { ...estimate, items: newItems };
+      setEstimate(updated);
+      onUpdate(updated);
+    },
+    [estimate, isLocked, onUpdate],
+  );
+
+  // ─── 小計 ───
   const tabSubtotal = useCallback(
     (workType: TreeWorkType): number => {
       if (!estimate) return 0;
@@ -101,21 +154,20 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
         .filter((i) => i.category === 'TREE' && i.workType === workType)
         .reduce(
           (sum, i) =>
-            sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier),
+            sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
           0,
         );
     },
     [estimate],
   );
 
-  // 木カテゴリ全体の小計
   const treeTotal = useCallback((): number => {
     if (!estimate) return 0;
     return estimate.items
       .filter((i) => i.category === 'TREE')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
         0,
       );
   }, [estimate]);
@@ -140,10 +192,15 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
   return (
     <div className="page">
-      <Header title={estimate.title} />
+      <Header
+        title={estimate.title}
+        rightAction={<Link to="/" className="header-home-btn" aria-label="一覧へ">🏠 一覧</Link>}
+      />
       <SubNavigation items={subNavItems} />
 
-      <div className="page-content">
+      {isLocked && <CompletedBanner />}
+
+      <div className={`page-content ${isLocked ? 'page-content--locked' : ''}`}>
         {/* タブ切り替え */}
         <div className="tabs">
           {TREE_TABS.map((wt) => (
@@ -158,28 +215,72 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
           ))}
         </div>
 
-        {/* 高さ区分ごとのステッパー */}
+        {/* 高さ区分ごとの入力行 */}
         <div className="input-list">
           {HEIGHT_CLASSES.map((hc) => {
             const unitPrice = getUnitPrice(activeTab, hc);
             const qty = getQuantity(activeTab, hc);
-            const lineAmount = calcLineAmount(qty, unitPrice, 1.0);
+            const item = getItem(activeTab, hc);
+            const multiplier = item?.lineMultiplier ?? 1.0;
+            const mQty = item?.multiplierQty ?? 0;
+            const lineAmount = calcLineAmount(qty, unitPrice, multiplier, mQty);
+            const rowKey = `${activeTab}_${hc}`;
+            const isExpanded = expandedRows.has(rowKey);
+            const hasMultiplier = mQty > 0 && multiplier !== 1.0;
+
             return (
-              <div key={hc} className="input-row">
-                <div className="input-row-info">
-                  <span className="input-row-label">
-                    {HEIGHT_CLASS_LABELS[hc]}
-                  </span>
-                  <span className="text-sm text-muted">
-                    @{formatYen(unitPrice)}
-                  </span>
+              <div key={hc} className="input-row-group">
+                <div className="input-row">
+                  <div className="input-row-info">
+                    <span className="input-row-label">
+                      {HEIGHT_CLASS_LABELS[hc]}
+                    </span>
+                    <span className="text-sm text-muted">
+                      @{formatYen(unitPrice)}
+                    </span>
+                  </div>
+                  <Stepper
+                    value={qty}
+                    onChange={(v) => setQuantity(activeTab, hc, v)}
+                    disabled={isLocked}
+                  />
+                  {qty > 0 && (
+                    <button
+                      type="button"
+                      className={`multiplier-btn ${hasMultiplier ? 'multiplier-btn--active' : ''} ${isExpanded ? 'multiplier-btn--open' : ''}`}
+                      onClick={() => toggleExpand(rowKey)}
+                    >
+                      {hasMultiplier ? `×${multiplier.toFixed(1)}/${mQty}本` : '倍率'}
+                    </button>
+                  )}
+                  {qty > 0 && (
+                    <span className="input-row-amount">{formatYen(lineAmount)}</span>
+                  )}
                 </div>
-                <Stepper
-                  value={qty}
-                  onChange={(v) => setQuantity(activeTab, hc, v)}
-                />
-                {qty > 0 && (
-                  <span className="input-row-amount">{formatYen(lineAmount)}</span>
+
+                {/* 倍率詳細（展開時のみ） */}
+                {isExpanded && qty > 0 && (
+                  <MultiplierDetail
+                    multiplier={multiplier}
+                    multiplierQty={mQty}
+                    totalQty={qty}
+                    unit="本"
+                    note={item?.note ?? ''}
+                    obstacles={item?.obstacles ?? []}
+                    onMultiplierChange={(v) =>
+                      updateItemDetail(activeTab, hc, { lineMultiplier: v })
+                    }
+                    onMultiplierQtyChange={(v) =>
+                      updateItemDetail(activeTab, hc, { multiplierQty: v })
+                    }
+                    onNoteChange={(v) =>
+                      updateItemDetail(activeTab, hc, { note: v })
+                    }
+                    onObstaclesChange={(v) =>
+                      updateItemDetail(activeTab, hc, { obstacles: v })
+                    }
+                    disabled={isLocked}
+                  />
                 )}
               </div>
             );
@@ -205,4 +306,3 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
     </div>
   );
 }
-

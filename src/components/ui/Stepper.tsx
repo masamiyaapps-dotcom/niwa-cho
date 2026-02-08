@@ -5,6 +5,7 @@ interface StepperProps {
   step?: number;
   onChange: (value: number) => void;
   label?: string;
+  disabled?: boolean;
 }
 
 export function Stepper({
@@ -14,26 +15,29 @@ export function Stepper({
   step = 1,
   onChange,
   label,
+  disabled = false,
 }: StepperProps) {
   const decrement = () => {
+    if (disabled) return;
     const next = value - step;
     if (next >= min) onChange(next);
   };
 
   const increment = () => {
+    if (disabled) return;
     const next = value + step;
     if (next <= max) onChange(next);
   };
 
   return (
-    <div className="stepper">
+    <div className={`stepper ${disabled ? 'stepper--disabled' : ''}`}>
       {label && <span className="stepper-label">{label}</span>}
       <div className="stepper-controls">
         <button
           type="button"
           className="stepper-btn stepper-btn--minus"
           onClick={decrement}
-          disabled={value <= min}
+          disabled={disabled || value <= min}
           aria-label="減らす"
         >
           −
@@ -43,7 +47,7 @@ export function Stepper({
           type="button"
           className="stepper-btn stepper-btn--plus"
           onClick={increment}
-          disabled={value >= max}
+          disabled={disabled || value >= max}
           aria-label="増やす"
         >
           ＋
@@ -52,4 +56,3 @@ export function Stepper({
     </div>
   );
 }
-

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/ui/Header';
 import { SubNavigation } from '../components/ui/SubNavigation';
+import { CompletedBanner } from '../components/ui/CompletedBanner';
+import { MultiplierDetail } from '../components/ui/MultiplierDetail';
 import { formatYen } from '../utils/format';
 import { calcLineAmount } from '../utils/calc';
-import type { Estimate, EstimateItem, DisposalWorkType, ObstacleCode } from '../types/estimate';
-import { DISPOSAL_WORK_LABELS, OBSTACLE_LABELS } from '../types/estimate';
+import type { Estimate, EstimateItem, DisposalWorkType } from '../types/estimate';
+import { DISPOSAL_WORK_LABELS } from '../types/estimate';
 import type { PriceMaster } from '../types/master';
 
 interface Props {
@@ -15,13 +17,11 @@ interface Props {
 }
 
 const DISPOSAL_WORKS: DisposalWorkType[] = ['BRANCH_BAG', 'TRUNK_KG'];
-const ALL_OBSTACLES: ObstacleCode[] = [
-  'ROAD', 'LANTERN_FLOWERBED', 'CAVE', 'NEIGHBOR', 'POND', 'SLOPE', 'CLIFF',
-];
 
 export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
   const { id } = useParams<{ id: string }>();
   const [estimate, setEstimate] = useState<Estimate | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id) {
@@ -29,6 +29,29 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
       if (est) setEstimate({ ...est });
     }
   }, [id, getEstimate]);
+
+  const isLocked = estimate?.status === 'COMPLETED';
+
+  // ─── 行の展開/折りたたみ ───
+  const toggleExpand = useCallback((key: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // ─── アイテム取得 ───
+  const getItem = useCallback(
+    (workType: DisposalWorkType): EstimateItem | undefined => {
+      if (!estimate) return undefined;
+      return estimate.items.find(
+        (i) => i.category === 'DISPOSAL' && i.workType === workType,
+      );
+    },
+    [estimate],
+  );
 
   const getUnitPrice = useCallback(
     (workType: DisposalWorkType): number => {
@@ -40,18 +63,15 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
 
   const getQuantity = useCallback(
     (workType: DisposalWorkType): number => {
-      if (!estimate) return 0;
-      const item = estimate.items.find(
-        (i) => i.category === 'DISPOSAL' && i.workType === workType,
-      );
-      return item?.quantity ?? 0;
+      return getItem(workType)?.quantity ?? 0;
     },
-    [estimate],
+    [getItem],
   );
 
+  // ─── 数量変更 ───
   const setQuantity = useCallback(
     (workType: DisposalWorkType, qty: number) => {
-      if (!estimate) return;
+      if (!estimate || isLocked) return;
       const newItems = [...estimate.items];
       const idx = newItems.findIndex(
         (i) => i.category === 'DISPOSAL' && i.workType === workType,
@@ -61,6 +81,11 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
 
       if (qty === 0 && idx >= 0) {
         newItems.splice(idx, 1);
+        setExpandedRows((prev) => {
+          const next = new Set(prev);
+          next.delete(workType);
+          return next;
+        });
       } else if (idx >= 0) {
         newItems[idx] = { ...newItems[idx], quantity: qty };
       } else if (qty > 0) {
@@ -81,53 +106,37 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, getUnitPrice, onUpdate],
+    [estimate, isLocked, getUnitPrice, onUpdate],
   );
 
-  const toggleObstacle = useCallback(
-    (code: ObstacleCode) => {
-      if (!estimate) return;
-      const checks = [...estimate.options.obstacleChecks];
-      const idx = checks.indexOf(code);
-      if (idx >= 0) {
-        checks.splice(idx, 1);
-      } else {
-        checks.push(code);
-      }
-
-      // 推奨倍率を計算
-      let recommendedMultiplier = 1.0;
-      for (const c of checks) {
-        const master = priceMaster.obstacleMultipliers.find((m) => m.code === c);
-        if (master) {
-          recommendedMultiplier = Math.max(
-            recommendedMultiplier,
-            master.recommendedMultiplier,
-          );
+  // ─── 倍率・メモ・障害物の更新 ───
+  const updateItemDetail = useCallback(
+    (
+      workType: DisposalWorkType,
+      updates: Partial<Pick<EstimateItem, 'lineMultiplier' | 'multiplierQty' | 'note' | 'obstacles'>>,
+    ) => {
+      if (!estimate || isLocked) return;
+      const newItems = estimate.items.map((i) => {
+        if (i.category === 'DISPOSAL' && i.workType === workType) {
+          return { ...i, ...updates };
         }
-      }
-
-      const updated: Estimate = {
-        ...estimate,
-        options: {
-          ...estimate.options,
-          obstacleChecks: checks,
-          projectMultiplier: recommendedMultiplier,
-        },
-      };
+        return i;
+      });
+      const updated = { ...estimate, items: newItems };
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, priceMaster, onUpdate],
+    [estimate, isLocked, onUpdate],
   );
 
+  // ─── 小計 ───
   const disposalTotal = useCallback((): number => {
     if (!estimate) return 0;
     return estimate.items
       .filter((i) => i.category === 'DISPOSAL')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
         0,
       );
   }, [estimate]);
@@ -150,77 +159,103 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
 
   return (
     <div className="page">
-      <Header title={estimate.title} />
+      <Header
+        title={estimate.title}
+        rightAction={<Link to="/" className="header-home-btn" aria-label="一覧へ">🏠 一覧</Link>}
+      />
       <SubNavigation items={subNavItems} />
 
-      <div className="page-content">
-        <h2 className="section-title">処分費</h2>
-        {DISPOSAL_WORKS.map((wt) => {
-          const unitPrice = getUnitPrice(wt);
-          const qty = getQuantity(wt);
-          const unit = wt === 'BRANCH_BAG' ? '袋' : 'kg';
-          const lineAmount = calcLineAmount(qty, unitPrice, 1.0);
+      {isLocked && <CompletedBanner />}
 
-          return (
-            <div key={wt} className="input-row input-row--ground">
-              <div className="input-row-info">
-                <span className="input-row-label">{DISPOSAL_WORK_LABELS[wt]}</span>
-                <span className="text-sm text-muted">@{formatYen(unitPrice)}/{unit}</span>
+      <div className={`page-content ${isLocked ? 'page-content--locked' : ''}`}>
+        <h2 className="section-title">処分費</h2>
+
+        <div className="input-list">
+          {DISPOSAL_WORKS.map((wt) => {
+            const unitPrice = getUnitPrice(wt);
+            const qty = getQuantity(wt);
+            const item = getItem(wt);
+            const multiplier = item?.lineMultiplier ?? 1.0;
+            const mQty = item?.multiplierQty ?? 0;
+            const unit = wt === 'BRANCH_BAG' ? '袋' : 'kg';
+            const lineAmount = calcLineAmount(qty, unitPrice, multiplier, mQty);
+            const isExpanded = expandedRows.has(wt);
+            const hasMultiplier = mQty > 0 && multiplier !== 1.0;
+
+            return (
+              <div key={wt} className="input-row-group">
+                <div className="input-row input-row--ground">
+                  <div className="input-row-info">
+                    <span className="input-row-label">{DISPOSAL_WORK_LABELS[wt]}</span>
+                    <span className="text-sm text-muted">@{formatYen(unitPrice)}/{unit}</span>
+                  </div>
+                  <div className="input-row-qty">
+                    <input
+                      type="number"
+                      className="form-input form-input--sm"
+                      value={qty || ''}
+                      onChange={(e) => setQuantity(wt, Number(e.target.value) || 0)}
+                      min={0}
+                      placeholder="0"
+                      inputMode="numeric"
+                      disabled={isLocked}
+                    />
+                    <span className="unit-label">{unit}</span>
+                  </div>
+                  {qty > 0 && (
+                    <button
+                      type="button"
+                      className={`multiplier-btn ${hasMultiplier ? 'multiplier-btn--active' : ''} ${isExpanded ? 'multiplier-btn--open' : ''}`}
+                      onClick={() => toggleExpand(wt)}
+                    >
+                      {hasMultiplier ? `×${multiplier.toFixed(1)}/${mQty}${unit}` : '倍率'}
+                    </button>
+                  )}
+                  {qty > 0 && (
+                    <span className="input-row-amount">{formatYen(lineAmount)}</span>
+                  )}
+                </div>
+
+                {/* 倍率詳細（展開時のみ） */}
+                {isExpanded && qty > 0 && (
+                  <MultiplierDetail
+                    multiplier={multiplier}
+                    multiplierQty={mQty}
+                    totalQty={qty}
+                    unit={unit}
+                    note={item?.note ?? ''}
+                    obstacles={item?.obstacles ?? []}
+                    onMultiplierChange={(v) =>
+                      updateItemDetail(wt, { lineMultiplier: v })
+                    }
+                    onMultiplierQtyChange={(v) =>
+                      updateItemDetail(wt, { multiplierQty: v })
+                    }
+                    onNoteChange={(v) =>
+                      updateItemDetail(wt, { note: v })
+                    }
+                    onObstaclesChange={(v) =>
+                      updateItemDetail(wt, { obstacles: v })
+                    }
+                    disabled={isLocked}
+                  />
+                )}
               </div>
-              <div className="input-row-qty">
-                <input
-                  type="number"
-                  className="form-input form-input--sm"
-                  value={qty || ''}
-                  onChange={(e) => setQuantity(wt, Number(e.target.value) || 0)}
-                  min={0}
-                  placeholder="0"
-                  inputMode="numeric"
-                />
-                <span className="unit-label">{unit}</span>
-              </div>
-              {qty > 0 && (
-                <span className="input-row-amount">{formatYen(lineAmount)}</span>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
         <div className="subtotal-box">
           <div className="subtotal-line subtotal-line--main">
             <span>処分 合計（税抜）</span>
             <span>{formatYen(disposalTotal())}</span>
           </div>
-        </div>
-
-        {/* 作業環境チェック */}
-        <h2 className="section-title">作業環境（障害物）</h2>
-        <p className="text-sm text-muted">
-          該当する障害物をチェックすると、案件倍率が自動計算されます
-        </p>
-        <div className="checkbox-list">
-          {ALL_OBSTACLES.map((code) => (
-            <label key={code} className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={estimate.options.obstacleChecks.includes(code)}
-                onChange={() => toggleObstacle(code)}
-              />
-              <span>{OBSTACLE_LABELS[code]}</span>
-            </label>
-          ))}
-        </div>
-
-        <div className="subtotal-box">
-          <div className="subtotal-line">
-            <span>案件倍率</span>
-            <span className="multiplier-value">
-              ×{estimate.options.projectMultiplier.toFixed(1)}
-            </span>
+          <div className="subtotal-line text-sm text-muted">
+            <span>税込</span>
+            <span>{formatYen(disposalTotal() * (1 + priceMaster.taxRate))}</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

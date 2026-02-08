@@ -31,6 +31,7 @@ function App() {
               estimates={store.estimates}
               onDuplicate={store.duplicateEstimate}
               onDelete={store.deleteEstimate}
+              onUpdateStatus={store.updateStatus}
             />
           }
         />

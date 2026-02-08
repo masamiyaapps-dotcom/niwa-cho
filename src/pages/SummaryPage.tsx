@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Header } from '../components/ui/Header';
 import { SubNavigation } from '../components/ui/SubNavigation';
+import { CompletedBanner } from '../components/ui/CompletedBanner';
 import { formatYen } from '../utils/format';
 import { generateId } from '../utils/format';
 import type { Estimate, Adjustment } from '../types/estimate';
+import { ESTIMATE_STATUS_LABELS } from '../types/estimate';
 import type { PriceMaster } from '../types/master';
 
 interface Props {
@@ -25,9 +27,11 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
     }
   }, [id, getEstimate]);
 
+  const isLocked = estimate?.status === 'COMPLETED';
+
   const addAdjustment = useCallback(
     (type: 'ADD' | 'DISCOUNT', reason: string, amount: number) => {
-      if (!estimate) return;
+      if (!estimate || isLocked) return;
       const adj: Adjustment = {
         id: generateId(),
         type,
@@ -41,12 +45,12 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, onUpdate],
+    [estimate, isLocked, onUpdate],
   );
 
   const removeAdjustment = useCallback(
     (adjId: string) => {
-      if (!estimate) return;
+      if (!estimate || isLocked) return;
       const updated = {
         ...estimate,
         adjustments: estimate.adjustments.filter((a) => a.id !== adjId),
@@ -54,7 +58,7 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, onUpdate],
+    [estimate, isLocked, onUpdate],
   );
 
   const addFromTemplate = useCallback(
@@ -86,24 +90,41 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
   return (
     <div className="page">
-      <Header title={estimate.title} />
+      <Header
+        title={estimate.title}
+        rightAction={<Link to="/" className="header-home-btn" aria-label="一覧へ">🏠 一覧</Link>}
+      />
       <SubNavigation items={subNavItems} />
 
+      {isLocked && <CompletedBanner />}
+
       <div className="page-content">
-        {/* 追加費用テンプレート */}
-        <h2 className="section-title">追加費用テンプレート</h2>
-        <div className="template-chips">
-          {priceMaster.adjustmentTemplates.map((tpl) => (
-            <button
-              key={tpl.id}
-              type="button"
-              className={`chip ${tpl.type === 'DISCOUNT' ? 'chip--discount' : ''}`}
-              onClick={() => addFromTemplate(tpl.id)}
-            >
-              {tpl.label}（{formatYen(tpl.defaultAmountExclTax)}）
-            </button>
-          ))}
+        {/* ステータス表示 */}
+        <div className="summary-status">
+          <span className="text-sm">ステータス：</span>
+          <span className={`status-badge status-badge--${estimate.status.toLowerCase()}`}>
+            {ESTIMATE_STATUS_LABELS[estimate.status]}
+          </span>
         </div>
+
+        {/* 追加費用テンプレート（完了時は非表示） */}
+        {!isLocked && (
+          <>
+            <h2 className="section-title">追加費用テンプレート</h2>
+            <div className="template-chips">
+              {priceMaster.adjustmentTemplates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  className={`chip ${tpl.type === 'DISCOUNT' ? 'chip--discount' : ''}`}
+                  onClick={() => addFromTemplate(tpl.id)}
+                >
+                  {tpl.label}（{formatYen(tpl.defaultAmountExclTax)}）
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* 調整一覧 */}
         {estimate.adjustments.length > 0 && (
@@ -114,13 +135,15 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
                 <span className={adj.type === 'DISCOUNT' ? 'text-danger' : ''}>
                   {adj.reason}: {formatYen(adj.amountExclTax)}
                 </span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-danger"
-                  onClick={() => removeAdjustment(adj.id)}
-                >
-                  ✕
-                </button>
+                {!isLocked && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger"
+                    onClick={() => removeAdjustment(adj.id)}
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -162,13 +185,15 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
         {/* アクションボタン */}
         <div className="action-buttons">
-          <button
-            type="button"
-            className="btn btn-primary btn-full"
-            onClick={() => navigate(`/estimate/${id}`)}
-          >
-            📝 案件情報を編集
-          </button>
+          {!isLocked && (
+            <button
+              type="button"
+              className="btn btn-primary btn-full"
+              onClick={() => navigate(`/estimate/${id}`)}
+            >
+              📝 案件情報を編集
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-outline btn-full"
@@ -181,4 +206,3 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
     </div>
   );
 }
-

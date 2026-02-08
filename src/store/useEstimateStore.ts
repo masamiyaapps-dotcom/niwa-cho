@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Estimate } from '../types/estimate';
+import type { Estimate, EstimateStatus } from '../types/estimate';
 import type { PriceMaster } from '../types/master';
 import { DEFAULT_PRICE_MASTER } from '../utils/defaultMaster';
 import { recalcTotals } from '../utils/calc';
@@ -10,6 +10,7 @@ export function createEmptyEstimate(title: string = ''): Estimate {
   const now = new Date().toISOString();
   return {
     id: generateId(),
+    status: 'DRAFT' as const,
     title,
     createdAt: now,
     updatedAt: now,
@@ -79,6 +80,20 @@ export function useEstimateStore() {
     [estimates],
   );
 
+  /** ステータス変更 */
+  const updateStatus = useCallback(
+    (id: string, status: EstimateStatus) => {
+      setEstimates((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, status, updatedAt: new Date().toISOString() }
+            : e,
+        ),
+      );
+    },
+    [],
+  );
+
   /** 案件を複製 */
   const duplicateEstimate = useCallback(
     (id: string) => {
@@ -88,6 +103,7 @@ export function useEstimateStore() {
       const dup: Estimate = {
         ...original,
         id: generateId(),
+        status: 'DRAFT',
         title: `${original.title}（コピー）`,
         createdAt: now,
         updatedAt: now,
@@ -105,6 +121,7 @@ export function useEstimateStore() {
     setPriceMaster,
     addEstimate,
     updateEstimate,
+    updateStatus,
     deleteEstimate,
     getEstimate,
     duplicateEstimate,

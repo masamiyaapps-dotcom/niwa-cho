@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/ui/Header';
 import { SubNavigation } from '../components/ui/SubNavigation';
+import { CompletedBanner } from '../components/ui/CompletedBanner';
 import { formatYen } from '../utils/format';
 import { calcLineAmount } from '../utils/calc';
 import type { Estimate, EstimateItem, GroundWorkType } from '../types/estimate';
@@ -27,6 +28,8 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
     }
   }, [id, getEstimate]);
 
+  const isLocked = estimate?.status === 'COMPLETED';
+
   const getUnitPrice = useCallback(
     (workType: GroundWorkType): number => {
       const found = priceMaster.groundPrices.find((p) => p.workType === workType);
@@ -48,7 +51,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
   const setQuantity = useCallback(
     (workType: GroundWorkType, qty: number) => {
-      if (!estimate) return;
+      if (!estimate || isLocked) return;
       const newItems = [...estimate.items];
       const idx = newItems.findIndex(
         (i) => i.category === 'GROUND' && i.workType === workType,
@@ -76,7 +79,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, getUnitPrice, onUpdate],
+    [estimate, isLocked, getUnitPrice, onUpdate],
   );
 
   const groundTotal = useCallback((): number => {
@@ -85,7 +88,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       .filter((i) => i.category === 'GROUND')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
         0,
       );
   }, [estimate]);
@@ -108,10 +111,15 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
 
   return (
     <div className="page">
-      <Header title={estimate.title} />
+      <Header
+        title={estimate.title}
+        rightAction={<Link to="/" className="header-home-btn" aria-label="一覧へ">🏠 一覧</Link>}
+      />
       <SubNavigation items={subNavItems} />
 
-      <div className="page-content">
+      {isLocked && <CompletedBanner />}
+
+      <div className={`page-content ${isLocked ? 'page-content--locked' : ''}`}>
         <h2 className="section-title">除草・地面作業</h2>
 
         {GROUND_WORKS.map((wt) => {
@@ -134,6 +142,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
                   min={0}
                   placeholder="0"
                   inputMode="numeric"
+                  disabled={isLocked}
                 />
                 <span className="unit-label">㎡</span>
               </div>
@@ -158,4 +167,3 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
     </div>
   );
 }
-

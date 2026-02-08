@@ -1,12 +1,22 @@
 import type { Estimate, Totals } from '../types/estimate';
 import type { RoundingRule } from '../types/master';
 
-/** 明細の税抜金額 */
+/**
+ * 明細の税抜金額
+ * multiplierQty が指定されている場合、その本数だけ倍率を適用し残りは ×1.0
+ */
 export function calcLineAmount(
   quantity: number,
   unitPriceExclTax: number,
   lineMultiplier: number,
+  multiplierQty?: number,
 ): number {
+  const mQty = multiplierQty ?? 0;
+  if (mQty > 0 && lineMultiplier !== 1.0) {
+    const effectiveMultQty = Math.min(mQty, quantity);
+    const normalQty = quantity - effectiveMultQty;
+    return normalQty * unitPriceExclTax + effectiveMultQty * unitPriceExclTax * lineMultiplier;
+  }
   return quantity * unitPriceExclTax * lineMultiplier;
 }
 
@@ -32,7 +42,7 @@ export function recalcTotals(
   // 小計税抜 = Σ 明細税抜
   const subtotalExclTax = estimate.items.reduce(
     (sum, item) =>
-      sum + calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier),
+      sum + calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.multiplierQty),
     0,
   );
 
