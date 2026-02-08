@@ -2,7 +2,7 @@
 export type Category = 'TREE' | 'GROUND' | 'DISPOSAL' | 'CUSTOM';
 
 export type TreeWorkType = 'PRUNE' | 'FELL' | 'SPRAY';
-export type GroundWorkType = 'WEED_HAND' | 'WEED_MACHINE';
+export type GroundWorkType = 'WEED_HAND' | 'WEED_MACHINE' | 'HERBICIDE' | 'WEED_SHEET';
 export type DisposalWorkType = 'BRANCH_BAG' | 'TRUNK_KG';
 export type WorkType = TreeWorkType | GroundWorkType | DisposalWorkType | string;
 
@@ -28,6 +28,8 @@ export const TREE_WORK_LABELS: Record<TreeWorkType, string> = {
 export const GROUND_WORK_LABELS: Record<GroundWorkType, string> = {
   WEED_HAND: '草むしり',
   WEED_MACHINE: '機械刈り',
+  HERBICIDE: '除草剤散布',
+  WEED_SHEET: '防草シート貼り',
 };
 
 export const DISPOSAL_WORK_LABELS: Record<DisposalWorkType, string> = {

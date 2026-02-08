@@ -14,7 +14,7 @@ interface Props {
   priceMaster: PriceMaster;
 }
 
-const GROUND_WORKS: GroundWorkType[] = ['WEED_HAND', 'WEED_MACHINE'];
+const GROUND_WORKS: GroundWorkType[] = ['WEED_HAND', 'WEED_MACHINE', 'HERBICIDE', 'WEED_SHEET'];
 
 export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
   const { id } = useParams<{ id: string }>();

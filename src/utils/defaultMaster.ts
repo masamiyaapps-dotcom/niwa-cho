@@ -34,6 +34,8 @@ export const DEFAULT_PRICE_MASTER: PriceMaster = {
   groundPrices: [
     { workType: 'WEED_HAND', pricePerUnit: 500 },
     { workType: 'WEED_MACHINE', pricePerUnit: 300 },
+    { workType: 'HERBICIDE', pricePerUnit: 200 },
+    { workType: 'WEED_SHEET', pricePerUnit: 1500 },
   ],
   disposalPrices: [
     { workType: 'BRANCH_BAG', pricePerUnit: 500 },
