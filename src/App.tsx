@@ -108,7 +108,12 @@ function App() {
         {/* 単価マスタ */}
         <Route
           path="/settings/prices"
-          element={<PriceMasterPage priceMaster={store.priceMaster} />}
+          element={
+            <PriceMasterPage
+              priceMaster={store.priceMaster}
+              onUpdate={store.setPriceMaster}
+            />
+          }
         />
       </Routes>
     </div>
