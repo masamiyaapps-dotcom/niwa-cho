@@ -5,8 +5,16 @@ import { SubNavigation } from '../components/ui/SubNavigation';
 import { CompletedBanner } from '../components/ui/CompletedBanner';
 import { formatYen } from '../utils/format';
 import { generateId } from '../utils/format';
-import type { Estimate, Adjustment } from '../types/estimate';
-import { ESTIMATE_STATUS_LABELS } from '../types/estimate';
+import { calcLineAmount } from '../utils/calc';
+import type { Estimate, Adjustment, EstimateItem } from '../types/estimate';
+import {
+  ESTIMATE_STATUS_LABELS,
+  TREE_WORK_LABELS,
+  HEIGHT_CLASS_LABELS,
+  GROUND_WORK_LABELS,
+  DISPOSAL_WORK_LABELS,
+} from '../types/estimate';
+import type { TreeWorkType, GroundWorkType, DisposalWorkType, HeightClass } from '../types/estimate';
 import type { PriceMaster } from '../types/master';
 
 interface Props {
@@ -149,6 +157,9 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
           </div>
         )}
 
+        {/* ─── セクション別内訳 ─── */}
+        <BreakdownSection estimate={estimate} />
+
         {/* 合計表示 */}
         <div className="total-box">
           <div className="total-line">
@@ -203,6 +214,150 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── 内訳表示サブコンポーネント ─── */
+
+function itemAmount(item: EstimateItem): number {
+  return calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.multiplierQty);
+}
+
+function getItemLabel(item: EstimateItem): string {
+  if (item.category === 'TREE') {
+    const work = TREE_WORK_LABELS[item.workType as TreeWorkType] ?? item.workType;
+    const height = item.heightClass ? HEIGHT_CLASS_LABELS[item.heightClass as HeightClass] : '';
+    return `${work} ${height}`;
+  }
+  if (item.category === 'GROUND') {
+    return GROUND_WORK_LABELS[item.workType as GroundWorkType] ?? item.workType;
+  }
+  if (item.category === 'DISPOSAL') {
+    return DISPOSAL_WORK_LABELS[item.workType as DisposalWorkType] ?? item.workType;
+  }
+  return item.workType;
+}
+
+function multiplierInfo(item: EstimateItem): string {
+  const mQty = item.multiplierQty ?? 0;
+  if (mQty > 0 && item.lineMultiplier !== 1.0) {
+    const normalQty = item.quantity - Math.min(mQty, item.quantity);
+    return `${normalQty}${item.unit}×1.0 + ${Math.min(mQty, item.quantity)}${item.unit}×${item.lineMultiplier.toFixed(1)}`;
+  }
+  if (item.lineMultiplier !== 1.0) {
+    return `×${item.lineMultiplier.toFixed(1)}`;
+  }
+  return '';
+}
+
+interface BreakdownProps {
+  estimate: Estimate;
+}
+
+function BreakdownSection({ estimate }: BreakdownProps) {
+  const treeItems = estimate.items.filter((i) => i.category === 'TREE');
+  const groundItems = estimate.items.filter((i) => i.category === 'GROUND');
+  const disposalItems = estimate.items.filter((i) => i.category === 'DISPOSAL');
+
+  const treeTotal = treeItems.reduce((s, i) => s + itemAmount(i), 0);
+  const groundTotal = groundItems.reduce((s, i) => s + itemAmount(i), 0);
+  const disposalTotal = disposalItems.reduce((s, i) => s + itemAmount(i), 0);
+
+  const hasAnyItems = treeItems.length > 0 || groundItems.length > 0 || disposalItems.length > 0;
+  if (!hasAnyItems) return null;
+
+  return (
+    <div className="breakdown-section">
+      <h2 className="section-title">内訳</h2>
+
+      {treeItems.length > 0 && (
+        <div className="breakdown-category">
+          <h3 className="breakdown-category-title">🌳 木</h3>
+          <div className="breakdown-items">
+            {treeItems.map((item) => (
+              <div key={item.id} className="breakdown-item">
+                <div className="breakdown-item-main">
+                  <span className="breakdown-item-label">{getItemLabel(item)}</span>
+                  <span className="breakdown-item-detail">
+                    {item.quantity}{item.unit}
+                    {' '}@{formatYen(item.unitPriceExclTax)}
+                  </span>
+                  <span className="breakdown-item-amount">{formatYen(itemAmount(item))}</span>
+                </div>
+                {multiplierInfo(item) && (
+                  <div className="breakdown-item-note">
+                    {multiplierInfo(item)}
+                  </div>
+                )}
+                {item.note && (
+                  <div className="breakdown-item-note">📝 {item.note}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="breakdown-subtotal">
+            <span>木 小計</span>
+            <span>{formatYen(treeTotal)}</span>
+          </div>
+        </div>
+      )}
+
+      {groundItems.length > 0 && (
+        <div className="breakdown-category">
+          <h3 className="breakdown-category-title">🌿 除草・地面</h3>
+          <div className="breakdown-items">
+            {groundItems.map((item) => (
+              <div key={item.id} className="breakdown-item">
+                <div className="breakdown-item-main">
+                  <span className="breakdown-item-label">{getItemLabel(item)}</span>
+                  <span className="breakdown-item-detail">
+                    {item.quantity}{item.unit}
+                    {' '}@{formatYen(item.unitPriceExclTax)}/{item.unit}
+                  </span>
+                  <span className="breakdown-item-amount">{formatYen(itemAmount(item))}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="breakdown-subtotal">
+            <span>除草 小計</span>
+            <span>{formatYen(groundTotal)}</span>
+          </div>
+        </div>
+      )}
+
+      {disposalItems.length > 0 && (
+        <div className="breakdown-category">
+          <h3 className="breakdown-category-title">🚛 処分</h3>
+          <div className="breakdown-items">
+            {disposalItems.map((item) => (
+              <div key={item.id} className="breakdown-item">
+                <div className="breakdown-item-main">
+                  <span className="breakdown-item-label">{getItemLabel(item)}</span>
+                  <span className="breakdown-item-detail">
+                    {item.quantity}{item.unit}
+                    {' '}@{formatYen(item.unitPriceExclTax)}/{item.unit}
+                  </span>
+                  <span className="breakdown-item-amount">{formatYen(itemAmount(item))}</span>
+                </div>
+                {multiplierInfo(item) && (
+                  <div className="breakdown-item-note">
+                    {multiplierInfo(item)}
+                  </div>
+                )}
+                {item.note && (
+                  <div className="breakdown-item-note">📝 {item.note}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="breakdown-subtotal">
+            <span>処分 小計</span>
+            <span>{formatYen(disposalTotal)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

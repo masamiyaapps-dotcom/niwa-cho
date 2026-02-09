@@ -542,6 +542,85 @@
 }
 
 /* ─── Subtotal / Total Boxes ─── */
+/* ─── Breakdown Section (内訳) ─── */
+.breakdown-section {
+  margin-bottom: var(--space-lg);
+}
+
+.breakdown-category {
+  margin-bottom: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.breakdown-category-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+  background: #f5f5f0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.breakdown-items {
+  padding: 0 var(--space-md);
+}
+
+.breakdown-item {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid #f0f0ea;
+}
+
+.breakdown-item:last-child {
+  border-bottom: none;
+}
+
+.breakdown-item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.breakdown-item-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 80px;
+}
+
+.breakdown-item-detail {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.breakdown-item-amount {
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.breakdown-item-note {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding-top: 2px;
+  padding-left: 4px;
+}
+
+.breakdown-subtotal {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: #f0f0ea;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--color-border);
+}
+
 .subtotal-box,
 .total-box {
   margin-top: var(--space-lg);
