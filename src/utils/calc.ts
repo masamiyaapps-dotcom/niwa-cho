@@ -3,21 +3,18 @@ import type { RoundingRule } from '../types/master';
 
 /**
  * 明細の税抜金額
- * multiplierQty が指定されている場合、その本数だけ倍率を適用し残りは ×1.0
+ * - lineMultiplier: 障害物等による倍率
+ * - speciesMultiplier: 樹種倍率
+ * - 両方の倍率を乗算して適用
  */
 export function calcLineAmount(
   quantity: number,
   unitPriceExclTax: number,
   lineMultiplier: number,
-  multiplierQty?: number,
+  speciesMultiplier?: number,
 ): number {
-  const mQty = multiplierQty ?? 0;
-  if (mQty > 0 && lineMultiplier !== 1.0) {
-    const effectiveMultQty = Math.min(mQty, quantity);
-    const normalQty = quantity - effectiveMultQty;
-    return normalQty * unitPriceExclTax + effectiveMultQty * unitPriceExclTax * lineMultiplier;
-  }
-  return quantity * unitPriceExclTax * lineMultiplier;
+  const speciesMult = speciesMultiplier ?? 1.0;
+  return quantity * unitPriceExclTax * lineMultiplier * speciesMult;
 }
 
 /** 丸め処理 */
@@ -42,7 +39,7 @@ export function recalcTotals(
   // 小計税抜 = Σ 明細税抜
   const subtotalExclTax = estimate.items.reduce(
     (sum, item) =>
-      sum + calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.multiplierQty),
+      sum + calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.speciesMultiplier),
     0,
   );
 

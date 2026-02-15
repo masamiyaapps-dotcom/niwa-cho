@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '../components/ui/Header';
 import { formatYen } from '../utils/format';
-import type { PriceMaster, RoundingRule, AdjustmentTemplate } from '../types/master';
-import { ROUNDING_LABELS } from '../types/master';
+import type { PriceMaster, RoundingRule, AdjustmentTemplate, TreeSpeciesCode } from '../types/master';
+import { ROUNDING_LABELS, TREE_SPECIES_LABELS, TREE_SPECIES_CATEGORIES } from '../types/master';
 import {
   HEIGHT_CLASS_LABELS,
   TREE_WORK_LABELS,
@@ -135,6 +135,43 @@ function PriceMasterView({ priceMaster, onEdit }: { priceMaster: PriceMaster; on
         </div>
       </div>
 
+      {/* ─── 樹種倍率 (View Mode) ─── */}
+      <div className="master-section">
+        <h2 className="section-title">樹種倍率</h2>
+        <div className="price-table-wrapper">
+          <table className="price-table">
+            <thead>
+              <tr>
+                <th>樹種</th>
+                <th>推奨</th>
+                <th>最小</th>
+                <th>最大</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(TREE_SPECIES_CATEGORIES).map(([category, codes]) => (
+                <>
+                  <tr key={`cat-${category}`} className="price-table-category">
+                    <td colSpan={4}><strong>■ {category}</strong></td>
+                  </tr>
+                  {codes.map((code) => {
+                    const sm = priceMaster.treeSpeciesMultipliers.find((s) => s.code === code);
+                    return (
+                      <tr key={code}>
+                        <td>{TREE_SPECIES_LABELS[code]}</td>
+                        <td>×{sm?.recommendedMultiplier.toFixed(1) ?? '1.0'}</td>
+                        <td>×{sm?.minMultiplier.toFixed(1) ?? '1.0'}</td>
+                        <td>×{sm?.maxMultiplier.toFixed(1) ?? '1.0'}</td>
+                      </tr>
+                    );
+                  })}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* ─── 追加費用テンプレート ─── */}
       <div className="master-section">
         <h2 className="section-title">追加費用テンプレート</h2>
@@ -242,6 +279,18 @@ function PriceMasterEdit({
       m.code === code ? { ...m, [field]: value } : m,
     );
     update({ obstacleMultipliers: newMultipliers });
+  };
+
+  // ─── 樹種倍率 ───
+  const setTreeSpeciesMultiplier = (
+    code: TreeSpeciesCode,
+    field: 'recommendedMultiplier' | 'minMultiplier' | 'maxMultiplier',
+    value: number,
+  ) => {
+    const newMultipliers = master.treeSpeciesMultipliers.map((m) =>
+      m.code === code ? { ...m, [field]: value } : m,
+    );
+    update({ treeSpeciesMultipliers: newMultipliers });
   };
 
   // ─── 追加費用テンプレート ───
@@ -484,6 +533,88 @@ function PriceMasterEdit({
                   />
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── 樹種倍率 (Edit Mode) ─── */}
+      <div className="master-section">
+        <h2 className="section-title">樹種倍率</h2>
+        <div className="master-price-list">
+          {Object.entries(TREE_SPECIES_CATEGORIES).map(([category, codes]) => (
+            <div key={category}>
+              <h3 className="section-subtitle">■ {category}</h3>
+              {codes.map((code) => {
+                const sm = master.treeSpeciesMultipliers.find((s) => s.code === code);
+                if (!sm) return null;
+                return (
+                  <div key={code} className="master-obstacle-row">
+                    <span className="master-obstacle-label">
+                      {TREE_SPECIES_LABELS[code]}
+                    </span>
+                    <div className="master-obstacle-inputs">
+                      <div className="master-obstacle-field">
+                        <span className="text-sm text-muted">推奨</span>
+                        <input
+                          type="number"
+                          className="form-input form-input--multiplier"
+                          value={sm.recommendedMultiplier}
+                          onChange={(e) =>
+                            setTreeSpeciesMultiplier(
+                              code,
+                              'recommendedMultiplier',
+                              Number(e.target.value) || 1.0,
+                            )
+                          }
+                          min={1.0}
+                          max={3.0}
+                          step={0.1}
+                          inputMode="decimal"
+                        />
+                      </div>
+                      <div className="master-obstacle-field">
+                        <span className="text-sm text-muted">最小</span>
+                        <input
+                          type="number"
+                          className="form-input form-input--multiplier"
+                          value={sm.minMultiplier}
+                          onChange={(e) =>
+                            setTreeSpeciesMultiplier(
+                              code,
+                              'minMultiplier',
+                              Number(e.target.value) || 1.0,
+                            )
+                          }
+                          min={1.0}
+                          max={3.0}
+                          step={0.1}
+                          inputMode="decimal"
+                        />
+                      </div>
+                      <div className="master-obstacle-field">
+                        <span className="text-sm text-muted">最大</span>
+                        <input
+                          type="number"
+                          className="form-input form-input--multiplier"
+                          value={sm.maxMultiplier}
+                          onChange={(e) =>
+                            setTreeSpeciesMultiplier(
+                              code,
+                              'maxMultiplier',
+                              Number(e.target.value) || 1.0,
+                            )
+                          }
+                          min={1.0}
+                          max={3.0}
+                          step={0.1}
+                          inputMode="decimal"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>

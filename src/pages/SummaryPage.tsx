@@ -221,7 +221,7 @@ export function SummaryPage({ getEstimate, onUpdate, priceMaster }: Props) {
 /* ─── 内訳表示サブコンポーネント ─── */
 
 function itemAmount(item: EstimateItem): number {
-  return calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.multiplierQty);
+  return calcLineAmount(item.quantity, item.unitPriceExclTax, item.lineMultiplier, item.speciesMultiplier);
 }
 
 function getItemLabel(item: EstimateItem): string {
@@ -240,15 +240,14 @@ function getItemLabel(item: EstimateItem): string {
 }
 
 function multiplierInfo(item: EstimateItem): string {
-  const mQty = item.multiplierQty ?? 0;
-  if (mQty > 0 && item.lineMultiplier !== 1.0) {
-    const normalQty = item.quantity - Math.min(mQty, item.quantity);
-    return `${normalQty}${item.unit}×1.0 + ${Math.min(mQty, item.quantity)}${item.unit}×${item.lineMultiplier.toFixed(1)}`;
-  }
+  const parts: string[] = [];
   if (item.lineMultiplier !== 1.0) {
-    return `×${item.lineMultiplier.toFixed(1)}`;
+    parts.push(`障害物×${item.lineMultiplier.toFixed(1)}`);
   }
-  return '';
+  if (item.speciesMultiplier && item.speciesMultiplier !== 1.0) {
+    parts.push(`樹種×${item.speciesMultiplier.toFixed(1)}`);
+  }
+  return parts.join(' / ');
 }
 
 interface BreakdownProps {

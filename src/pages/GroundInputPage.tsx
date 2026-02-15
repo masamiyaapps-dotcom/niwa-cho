@@ -88,7 +88,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       .filter((i) => i.category === 'GROUND')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.speciesMultiplier),
         0,
       );
   }, [estimate]);
@@ -125,7 +125,7 @@ export function GroundInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
         {GROUND_WORKS.map((wt) => {
           const unitPrice = getUnitPrice(wt);
           const qty = getQuantity(wt);
-          const lineAmount = calcLineAmount(qty, unitPrice, 1.0);
+          const lineAmount = calcLineAmount(qty, unitPrice, 1.0, undefined);
 
           return (
             <div key={wt} className="input-row input-row--ground">

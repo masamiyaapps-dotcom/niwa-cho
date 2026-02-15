@@ -57,7 +57,8 @@ export interface EstimateItem {
   unitPriceExclTax: number;
   lineMultiplier: number; // 既定 1.0
   multiplierQty?: number; // 倍率適用本数（0 or undefined = 全数に適用しない）
-  species?: string; // 樹種（任意）
+  speciesCode?: string; // 樹種コード（TreeSpeciesCode）
+  speciesMultiplier?: number; // 樹種倍率（既定 1.0）
   note?: string;
   obstacles?: ObstacleCode[]; // 明細ごとの障害物理由
 }

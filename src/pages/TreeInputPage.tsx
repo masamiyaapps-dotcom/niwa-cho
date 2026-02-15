@@ -4,8 +4,8 @@ import { Header } from '../components/ui/Header';
 import { SubNavigation } from '../components/ui/SubNavigation';
 import { CompletedBanner } from '../components/ui/CompletedBanner';
 import { Stepper } from '../components/ui/Stepper';
-import { MultiplierDetail } from '../components/ui/MultiplierDetail';
-import { formatYen } from '../utils/format';
+import { IndividualItemDetail } from '../components/ui/IndividualItemDetail';
+import { formatYen, generateId } from '../utils/format';
 import { calcLineAmount } from '../utils/calc';
 import type { Estimate, EstimateItem, HeightClass, TreeWorkType } from '../types/estimate';
 import { HEIGHT_CLASS_LABELS, TREE_WORK_LABELS } from '../types/estimate';
@@ -45,11 +45,11 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
     });
   }, []);
 
-  // ─── アイテム取得 ───
-  const getItem = useCallback(
-    (workType: TreeWorkType, heightClass: HeightClass): EstimateItem | undefined => {
-      if (!estimate) return undefined;
-      return estimate.items.find(
+  // ─── アイテム取得（グループ） ───
+  const getItems = useCallback(
+    (workType: TreeWorkType, heightClass: HeightClass): EstimateItem[] => {
+      if (!estimate) return [];
+      return estimate.items.filter(
         (i) =>
           i.category === 'TREE' &&
           i.workType === workType &&
@@ -69,76 +69,67 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
     [priceMaster],
   );
 
-  const getQuantity = useCallback(
-    (workType: TreeWorkType, heightClass: HeightClass): number => {
-      return getItem(workType, heightClass)?.quantity ?? 0;
-    },
-    [getItem],
-  );
-
-  // ─── 数量変更 ───
+  // ─── 数量変更（アイテム追加/削除） ───
   const setQuantity = useCallback(
-    (workType: TreeWorkType, heightClass: HeightClass, qty: number) => {
+    (workType: TreeWorkType, heightClass: HeightClass, newQty: number) => {
       if (!estimate || isLocked) return;
 
-      const newItems = [...estimate.items];
-      const idx = newItems.findIndex(
-        (i) =>
-          i.category === 'TREE' &&
-          i.workType === workType &&
-          i.heightClass === heightClass,
-      );
+      const currentItems = getItems(workType, heightClass);
+      const currentQty = currentItems.length;
 
-      if (qty === 0 && idx >= 0) {
-        newItems.splice(idx, 1);
-        // 数量0なら展開も閉じる
-        setExpandedRows((prev) => {
-          const next = new Set(prev);
-          next.delete(`${workType}_${heightClass}`);
-          return next;
-        });
-      } else if (idx >= 0) {
-        newItems[idx] = { ...newItems[idx], quantity: qty };
-      } else if (qty > 0) {
+      if (newQty === currentQty) return;
+
+      let newItems = [...estimate.items];
+
+      if (newQty < currentQty) {
+        // 減らす：末尾から削除
+        const toRemove = currentQty - newQty;
+        const idsToRemove = currentItems.slice(-toRemove).map((i) => i.id);
+        newItems = newItems.filter((i) => !idsToRemove.includes(i.id));
+      } else {
+        // 増やす：新規アイテム追加
+        const toAdd = newQty - currentQty;
         const unitPrice = getUnitPrice(workType, heightClass);
-        const newItem: EstimateItem = {
-          id: `tree_${workType}_${heightClass}_${Date.now()}`,
-          category: 'TREE',
-          workType,
-          heightClass,
-          quantity: qty,
-          unit: '本',
-          unitPriceExclTax: unitPrice,
-          lineMultiplier: 1.0,
-        };
-        newItems.push(newItem);
+        for (let i = 0; i < toAdd; i++) {
+          newItems.push({
+            id: generateId(),
+            category: 'TREE',
+            workType,
+            heightClass,
+            quantity: 1,
+            unit: '本',
+            unitPriceExclTax: unitPrice,
+            lineMultiplier: 1.0,
+          });
+        }
       }
 
       const updated = { ...estimate, items: newItems };
       setEstimate(updated);
       onUpdate(updated);
     },
-    [estimate, isLocked, getUnitPrice, onUpdate],
+    [estimate, isLocked, getItems, getUnitPrice, onUpdate],
   );
 
-  // ─── 倍率・メモ・障害物の更新 ───
-  const updateItemDetail = useCallback(
-    (
-      workType: TreeWorkType,
-      heightClass: HeightClass,
-      updates: Partial<Pick<EstimateItem, 'lineMultiplier' | 'multiplierQty' | 'note' | 'obstacles'>>,
-    ) => {
+  // ─── 個別アイテム更新 ───
+  const updateItem = useCallback(
+    (itemId: string, updates: Partial<EstimateItem>) => {
       if (!estimate || isLocked) return;
-      const newItems = estimate.items.map((i) => {
-        if (
-          i.category === 'TREE' &&
-          i.workType === workType &&
-          i.heightClass === heightClass
-        ) {
-          return { ...i, ...updates };
-        }
-        return i;
-      });
+      const newItems = estimate.items.map((i) =>
+        i.id === itemId ? { ...i, ...updates } : i,
+      );
+      const updated = { ...estimate, items: newItems };
+      setEstimate(updated);
+      onUpdate(updated);
+    },
+    [estimate, isLocked, onUpdate],
+  );
+
+  // ─── 個別アイテム削除 ───
+  const removeItem = useCallback(
+    (itemId: string) => {
+      if (!estimate || isLocked) return;
+      const newItems = estimate.items.filter((i) => i.id !== itemId);
       const updated = { ...estimate, items: newItems };
       setEstimate(updated);
       onUpdate(updated);
@@ -154,7 +145,7 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
         .filter((i) => i.category === 'TREE' && i.workType === workType)
         .reduce(
           (sum, i) =>
-            sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
+            sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.speciesMultiplier),
           0,
         );
     },
@@ -167,7 +158,7 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
       .filter((i) => i.category === 'TREE')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.speciesMultiplier),
         0,
       );
   }, [estimate]);
@@ -219,14 +210,17 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
         <div className="input-list">
           {HEIGHT_CLASSES.map((hc) => {
             const unitPrice = getUnitPrice(activeTab, hc);
-            const qty = getQuantity(activeTab, hc);
-            const item = getItem(activeTab, hc);
-            const multiplier = item?.lineMultiplier ?? 1.0;
-            const mQty = item?.multiplierQty ?? 0;
-            const lineAmount = calcLineAmount(qty, unitPrice, multiplier, mQty);
+            const items = getItems(activeTab, hc);
+            const qty = items.length;
+            const totalAmount = items.reduce(
+              (sum, i) => sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.speciesMultiplier),
+              0,
+            );
             const rowKey = `${activeTab}_${hc}`;
             const isExpanded = expandedRows.has(rowKey);
-            const hasMultiplier = mQty > 0 && multiplier !== 1.0;
+            const hasDetails = items.some(
+              (i) => i.lineMultiplier !== 1.0 || i.speciesCode || (i.obstacles && i.obstacles.length > 0) || i.note,
+            );
 
             return (
               <div key={hc} className="input-row-group">
@@ -247,40 +241,47 @@ export function TreeInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
                   {qty > 0 && (
                     <button
                       type="button"
-                      className={`multiplier-btn ${hasMultiplier ? 'multiplier-btn--active' : ''} ${isExpanded ? 'multiplier-btn--open' : ''}`}
+                      className={`multiplier-btn ${hasDetails ? 'multiplier-btn--active' : ''} ${isExpanded ? 'multiplier-btn--open' : ''}`}
                       onClick={() => toggleExpand(rowKey)}
                     >
-                      {hasMultiplier ? `×${multiplier.toFixed(1)}/${mQty}本` : '倍率'}
+                      内訳
                     </button>
                   )}
                   {qty > 0 && (
-                    <span className="input-row-amount">{formatYen(lineAmount)}</span>
+                    <span className="input-row-amount">{formatYen(totalAmount)}</span>
                   )}
                 </div>
 
-                {/* 倍率詳細（展開時のみ） */}
+                {/* 個別アイテム詳細（展開時のみ） */}
                 {isExpanded && qty > 0 && (
-                  <MultiplierDetail
-                    multiplier={multiplier}
-                    multiplierQty={mQty}
-                    totalQty={qty}
-                    unit="本"
-                    note={item?.note ?? ''}
-                    obstacles={item?.obstacles ?? []}
-                    onMultiplierChange={(v) =>
-                      updateItemDetail(activeTab, hc, { lineMultiplier: v })
-                    }
-                    onMultiplierQtyChange={(v) =>
-                      updateItemDetail(activeTab, hc, { multiplierQty: v })
-                    }
-                    onNoteChange={(v) =>
-                      updateItemDetail(activeTab, hc, { note: v })
-                    }
-                    onObstaclesChange={(v) =>
-                      updateItemDetail(activeTab, hc, { obstacles: v })
-                    }
-                    disabled={isLocked}
-                  />
+                  <div className="individual-items-panel">
+                    {items.map((item, idx) => (
+                      <IndividualItemDetail
+                        key={item.id}
+                        itemNumber={idx + 1}
+                        lineMultiplier={item.lineMultiplier}
+                        note={item.note ?? ''}
+                        obstacles={item.obstacles ?? []}
+                        speciesCode={item.speciesCode}
+                        speciesMultiplier={item.speciesMultiplier}
+                        treeSpeciesMultipliers={priceMaster.treeSpeciesMultipliers}
+                        onMultiplierChange={(v) =>
+                          updateItem(item.id, { lineMultiplier: v })
+                        }
+                        onNoteChange={(v) =>
+                          updateItem(item.id, { note: v })
+                        }
+                        onObstaclesChange={(v) =>
+                          updateItem(item.id, { obstacles: v })
+                        }
+                        onSpeciesChange={(code, mult) =>
+                          updateItem(item.id, { speciesCode: code, speciesMultiplier: mult })
+                        }
+                        onRemove={() => removeItem(item.id)}
+                        disabled={isLocked}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             );

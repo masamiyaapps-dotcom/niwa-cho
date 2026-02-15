@@ -50,6 +50,21 @@ export const DEFAULT_PRICE_MASTER: PriceMaster = {
     { code: 'SLOPE', recommendedMultiplier: 1.3, minMultiplier: 1.0, maxMultiplier: 1.5 },
     { code: 'CLIFF', recommendedMultiplier: 1.5, minMultiplier: 1.0, maxMultiplier: 2.0 },
   ],
+  treeSpeciesMultipliers: [
+    // 特殊手入れ
+    { code: 'PINE_MAINTAINED', recommendedMultiplier: 1.3, minMultiplier: 1.0, maxMultiplier: 1.5 },
+    { code: 'MAKI_MAINTAINED', recommendedMultiplier: 1.2, minMultiplier: 1.0, maxMultiplier: 1.5 },
+    // 竹
+    { code: 'BAMBOO_MOSO', recommendedMultiplier: 1.5, minMultiplier: 1.0, maxMultiplier: 2.0 },
+    { code: 'BAMBOO_MADAKE', recommendedMultiplier: 1.4, minMultiplier: 1.0, maxMultiplier: 2.0 },
+    { code: 'BAMBOO_HACHIKU', recommendedMultiplier: 1.3, minMultiplier: 1.0, maxMultiplier: 2.0 },
+    { code: 'BAMBOO_MEDAKE_NEZASA', recommendedMultiplier: 1.2, minMultiplier: 1.0, maxMultiplier: 1.8 },
+    // トゲ物
+    { code: 'THORN_KARATACHI_SANSHO_ROSE', recommendedMultiplier: 1.3, minMultiplier: 1.0, maxMultiplier: 1.8 },
+    { code: 'THORN_PYRACANTHA_BOKE_NANTEN', recommendedMultiplier: 1.2, minMultiplier: 1.0, maxMultiplier: 1.6 },
+    { code: 'THORN_CITRUS', recommendedMultiplier: 1.2, minMultiplier: 1.0, maxMultiplier: 1.6 },
+    { code: 'THORN_TARANOKI_HARIGIRI_ACACIA', recommendedMultiplier: 1.4, minMultiplier: 1.0, maxMultiplier: 2.0 },
+  ],
   adjustmentTemplates: [
     { id: 'tpl_safety', label: '安全対策費', defaultAmountExclTax: 5000, type: 'ADD' },
     { id: 'tpl_carry', label: '搬出手運び', defaultAmountExclTax: 3000, type: 'ADD' },

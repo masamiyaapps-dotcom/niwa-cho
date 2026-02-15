@@ -136,7 +136,7 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
       .filter((i) => i.category === 'DISPOSAL')
       .reduce(
         (sum, i) =>
-          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.multiplierQty),
+          sum + calcLineAmount(i.quantity, i.unitPriceExclTax, i.lineMultiplier, i.speciesMultiplier),
         0,
       );
   }, [estimate]);
@@ -178,7 +178,7 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
             const multiplier = item?.lineMultiplier ?? 1.0;
             const mQty = item?.multiplierQty ?? 0;
             const unit = wt === 'BRANCH_BAG' ? '袋' : 'kg';
-            const lineAmount = calcLineAmount(qty, unitPrice, multiplier, mQty);
+            const lineAmount = calcLineAmount(qty, unitPrice, multiplier, item?.speciesMultiplier);
             const isExpanded = expandedRows.has(wt);
             const hasMultiplier = mQty > 0 && multiplier !== 1.0;
 
