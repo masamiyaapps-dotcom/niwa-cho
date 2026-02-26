@@ -98,7 +98,7 @@ function PriceMasterView({ priceMaster, onEdit }: { priceMaster: PriceMaster; on
       <div className="master-section">
         <h2 className="section-title">処分（税抜）</h2>
         {priceMaster.disposalPrices.map((dp) => {
-          const unit = dp.workType === 'BRANCH_BAG' ? '袋' : 'kg';
+          const unit = '台';
           return (
             <div key={dp.workType} className="master-view-row">
               <span className="master-view-label">{DISPOSAL_WORK_LABELS[dp.workType]}</span>
@@ -437,7 +437,7 @@ function PriceMasterEdit({
         <h2 className="section-title">処分（税抜）</h2>
         <div className="master-price-list">
           {master.disposalPrices.map((dp) => {
-            const unit = dp.workType === 'BRANCH_BAG' ? '袋' : 'kg';
+            const unit = '台';
             return (
               <div key={dp.workType} className="master-edit-row">
                 <label className="master-edit-label">
@@ -453,7 +453,7 @@ function PriceMasterEdit({
                       setDisposalPrice(dp.workType, Number(e.target.value) || 0)
                     }
                     min={0}
-                    step={10}
+                    step={100}
                     inputMode="numeric"
                     placeholder="0"
                   />

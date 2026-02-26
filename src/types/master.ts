@@ -24,7 +24,7 @@ export interface GroundPrice {
 
 // ─── 処分単価 ───
 export interface DisposalPrice {
-  workType: 'BRANCH_BAG' | 'TRUNK_KG';
+  workType: 'TRUCK_FULL' | 'TRUCK_HALF';
   pricePerUnit: number; // 税抜
 }
 

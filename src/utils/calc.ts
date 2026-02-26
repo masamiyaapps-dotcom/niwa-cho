@@ -3,9 +3,10 @@ import type { RoundingRule } from '../types/master';
 
 /**
  * 明細の税抜金額
- * - lineMultiplier: 障害物等による倍率
+ * - lineMultiplier: 障害物等による倍率（環境難易度）
  * - speciesMultiplier: 樹種倍率
- * - 両方の倍率を乗算して適用
+ * - 両方の倍率の和を計算して適用（基準値1.0を考慮）
+ * 例: 樹種1.3 + 障害物1.2 = 合計1.5 (1.3 - 1.0 + 1.2)
  */
 export function calcLineAmount(
   quantity: number,
@@ -14,7 +15,9 @@ export function calcLineAmount(
   speciesMultiplier?: number,
 ): number {
   const speciesMult = speciesMultiplier ?? 1.0;
-  return quantity * unitPriceExclTax * lineMultiplier * speciesMult;
+  // 樹種倍率と障害物倍率の和を計算（基準値1.0を引いて加算）
+  const combinedMultiplier = lineMultiplier + speciesMult - 1.0;
+  return quantity * unitPriceExclTax * combinedMultiplier;
 }
 
 /** 丸め処理 */

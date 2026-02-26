@@ -52,7 +52,8 @@ export function IndividualItemDetail({
     onSpeciesChange(code, found?.recommendedMultiplier ?? 1.0);
   };
 
-  const totalMultiplier = lineMultiplier * speciesMultiplier;
+  // 樹種倍率と障害物倍率の和（基準値1.0を考慮）
+  const totalMultiplier = lineMultiplier + speciesMultiplier - 1.0;
 
   return (
     <div className="individual-item-detail">

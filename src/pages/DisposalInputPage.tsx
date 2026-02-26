@@ -16,7 +16,7 @@ interface Props {
   priceMaster: PriceMaster;
 }
 
-const DISPOSAL_WORKS: DisposalWorkType[] = ['BRANCH_BAG', 'TRUNK_KG'];
+const DISPOSAL_WORKS: DisposalWorkType[] = ['TRUCK_FULL', 'TRUCK_HALF'];
 
 export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props) {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +77,7 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
         (i) => i.category === 'DISPOSAL' && i.workType === workType,
       );
 
-      const unit = workType === 'BRANCH_BAG' ? '袋' : 'kg';
+      const unit = '台';
 
       if (qty === 0 && idx >= 0) {
         newItems.splice(idx, 1);
@@ -177,7 +177,7 @@ export function DisposalInputPage({ getEstimate, onUpdate, priceMaster }: Props)
             const item = getItem(wt);
             const multiplier = item?.lineMultiplier ?? 1.0;
             const mQty = item?.multiplierQty ?? 0;
-            const unit = wt === 'BRANCH_BAG' ? '袋' : 'kg';
+            const unit = '台';
             const lineAmount = calcLineAmount(qty, unitPrice, multiplier, item?.speciesMultiplier);
             const isExpanded = expandedRows.has(wt);
             const hasMultiplier = mQty > 0 && multiplier !== 1.0;

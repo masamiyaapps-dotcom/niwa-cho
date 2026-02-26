@@ -38,8 +38,8 @@ export const DEFAULT_PRICE_MASTER: PriceMaster = {
     { workType: 'WEED_SHEET', pricePerUnit: 1500 },
   ],
   disposalPrices: [
-    { workType: 'BRANCH_BAG', pricePerUnit: 500 },
-    { workType: 'TRUNK_KG', pricePerUnit: 50 },
+    { workType: 'TRUCK_FULL', pricePerUnit: 33000 },
+    { workType: 'TRUCK_HALF', pricePerUnit: 16500 },
   ],
   obstacleMultipliers: [
     { code: 'ROAD', recommendedMultiplier: 1.2, minMultiplier: 1.0, maxMultiplier: 1.5 },
