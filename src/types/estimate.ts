@@ -12,7 +12,7 @@ export type Category = 'TREE' | 'GROUND' | 'DISPOSAL' | 'CUSTOM';
 
 export type TreeWorkType = 'PRUNE' | 'FELL' | 'SPRAY';
 export type GroundWorkType = 'WEED_HAND' | 'WEED_MACHINE' | 'HERBICIDE' | 'WEED_SHEET';
-export type DisposalWorkType = 'BRANCH_BAG' | 'TRUNK_KG';
+export type DisposalWorkType = 'TRUCK_FULL' | 'TRUCK_HALF';
 export type WorkType = TreeWorkType | GroundWorkType | DisposalWorkType | string;
 
 // 高さ区分
@@ -42,8 +42,8 @@ export const GROUND_WORK_LABELS: Record<GroundWorkType, string> = {
 };
 
 export const DISPOSAL_WORK_LABELS: Record<DisposalWorkType, string> = {
-  BRANCH_BAG: '枝葉(45L袋)',
-  TRUNK_KG: '幹(kg)',
+  TRUCK_FULL: 'トラック満載',
+  TRUCK_HALF: 'トラック半載',
 };
 
 // ─── 明細 ───
